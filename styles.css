@@ -15,7 +15,7 @@
 	--color-surface-4: oklch(from var(--color-progressive) calc(l + .2586) calc(c - .1826) calc(h + 1.5));
 	--color-base: #20222d;
 	--color-subtle: #606678;
-	--line: rgba(39, 49, 90, .15);
+	--line: rgba(0, 0, 0, 0.05);
 	--primary: #3b53bd;
 	--accent: var(--color-progressive); /* #3e5ac6; */
 	
@@ -31,7 +31,7 @@
 	--color-surface-4: oklch(from var(--color-progressive) .4162 .0933 calc(h + 1.5));
 	--color-base: #e6eaf4;
 	--color-subtle: #aab3c7;
-	--line: rgba(205, 215, 246, .14);
+	--line: rgba(255, 255, 255, 0.05);
 	--primary: #b0bfff;
 	--accent: var(--color-progressive); /* #7d91ff; */
 }
@@ -117,6 +117,7 @@ body {
 	height: 56px;
 	justify-content: space-between;
 	padding: 8px 32px;
+	border-bottom: 1px solid var(--line);
 	position: sticky;
 	top: 0;
 	z-index: 10
