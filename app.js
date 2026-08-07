@@ -3,11 +3,11 @@ const GAME_ID = 'm1zy4336';
 
 const CATEGORY_ICONS = {
 	'w2077y8k': {
-		src: 'media/icon-ft3.png',
+		src: 'media/icon-ft3.webp',
 		alt: "Guy's bowler"
 	},
 	'02qn6lj2': {
-		src: 'media/icon-nlb.png',
+		src: 'media/icon-nlb.webp',
 		alt: "Guy's bowler"
 	}
 };
@@ -31,6 +31,14 @@ const state = {
 };
 
 const $ = selector => document.querySelector(selector);
+
+function removeRedirectParam() {
+	const url = new URL(window.location.href);
+	if (!url.searchParams.has('rdfrom')) return;
+	url.searchParams.delete('rdfrom');
+	const cleaned = `${url.pathname}${url.search ? url.search : ''}${url.hash}`;
+	history.replaceState(null, '', cleaned);
+}
 
 const formatTime = seconds => {
 	seconds = Math.round(seconds * 1000) / 1000;
@@ -240,7 +248,7 @@ function renderLeaderboard() {
 	const body = $('#leaderboardBody');
 	body.innerHTML = state.runs.map((run, index) => {
 		const avatar = run.avatar.image ? `<img src="${escapeHTML(run.avatar.image)}" alt="" />` : `<span class="avatar-fallback">${initials(run.avatar.name)}</span>`;
-		return `<tr data-index="${index}"><td>${run.place || index + 1}</td><td><div class="avatar">${avatar}<div><strong>${escapeHTML(run.avatar.name)}</strong><!--<small>Verified run</small>--></div></div></td><td class="time">${formatTime(run.times.primary_t)}</td><td><span class="platform">${escapeHTML(run.platformName)}</span></td><td class="verified">${formatDate(run.status?.['verify-date'])}</td><td><span class="material-symbols-rounded row-arrow">chevron_right</span></td></tr>`;
+		return `<tr data-index="${index}"><td>${run.place || index + 1}</td><td><div class="avatar">${avatar}<div><strong>${escapeHTML(run.avatar.name)}</strong><!--<small>Verified run</small>--></div></div></td><td class="time">${formatTime(run.times.primary_t)}</td><td><span class="platform">${escapeHTML(run.platformName)}</span></td><td class="verified">${formatDate(run.date)}</td><td><span class="material-symbols-rounded row-arrow">chevron_right</span></td></tr>`;
 	}).join('');
 	body.querySelectorAll('tr').forEach(row => row.addEventListener('click', () => openModal(state.runs[Number(row.dataset.index)])));
 }
@@ -397,6 +405,7 @@ function setupCategoryControls() {
 }
 
 async function init() {
+	removeRedirectParam();
 	setupTheme();
 	setupCategoryControls();
 	try {

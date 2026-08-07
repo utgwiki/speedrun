@@ -18,7 +18,7 @@
 	--line: rgba(39, 49, 90, .15);
 	--primary: #3b53bd;
 	--accent: var(--color-progressive); /* #3e5ac6; */
-	--bg: url(media/background-light.png);
+	--bg: url(media/background-light.webp);
 }
 
 :root.dark {
@@ -34,15 +34,15 @@
 	--line: rgba(205, 215, 246, .14);
 	--primary: #b0bfff;
 	--accent: var(--color-progressive); /* #7d91ff; */
-	--bg: url(media/background.png);
+	--bg: url(media/background.webp);
 }
 
 .light .fttt-view {
-	--bg: url(media/background-ft3-light.png);
+	--bg: url(media/background-ft3-light.webp);
 }
 
 .dark .fttt-view {
-	--bg: url(media/background-ft3.png);
+	--bg: url(media/background-ft3.webp);
 }
 
 * {
