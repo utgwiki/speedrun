@@ -729,7 +729,11 @@ footer {
 	display: flex;
 	place-content: center;
 	flex-wrap: wrap;
-	gap: .5rem;
+	gap: 1rem;
+}
+
+.dark .dark-invert {
+	filter: invert(1) hue-rotate(180deg);
 }
 
 @media (max-width:700px) {
