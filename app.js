@@ -45,11 +45,11 @@ const formatTime = seconds => {
 	const h = Math.floor(seconds / 3600);
 	const m = Math.floor(seconds % 3600 / 60);
 	const s = (seconds % 60).toFixed(3).padStart(6, '0');
-	return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`
+	return h ? `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${s}` : `${String(m).padStart(2, '0')}:${s}`;
 };
 
 const formatDate = date => date ? new Intl.DateTimeFormat(undefined, {
-	month: 'short',
+	month: 'long',
 	day: 'numeric',
 	year: 'numeric'
 }).format(new Date(date)) : '—';
@@ -331,6 +331,7 @@ async function applyHash() {
 
 function closeModal() {
 	$('#modalBackdrop').hidden = true;
+	$('#videoWrap').innerHTML = '';
 	setHash();
 }
 
@@ -423,11 +424,15 @@ async function init() {
 
 $('#modalClose').addEventListener('click', closeModal);
 $('#modalBackdrop').addEventListener('click', event => {
-	if (event.target.id === 'modalBackdrop') closeModal();
+	if (event.target.id === 'modalBackdrop') {
+		closeModal();
+	}
 });
 
 document.addEventListener('keydown', event => {
-	if (event.key === 'Escape' && !$('#modalBackdrop').hidden) closeModal();
+	if (event.key === 'Escape') {
+		closeModal();
+	}
 });
 
 window.addEventListener('hashchange', () => applyHash());
