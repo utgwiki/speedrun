@@ -292,7 +292,7 @@ a:hover {
 	margin: 1rem 0;
 	transition: .25s height, .25s background;
 
-	@media screen and (max-width: 800px) {
+	@media screen and (max-width: 1119px) {
 		gap: .5rem;
 		top: 56px;
 		transition: .25s background, .25s padding;
