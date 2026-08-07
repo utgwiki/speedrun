@@ -93,12 +93,12 @@ body {
 		inset: 0;
 		background: var(--bg) center/cover no-repeat;
 		z-index: -2;
+		filter: blur(3px);
 		mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 70%, rgba(0, 0, 0, 0.2), transparent 100%);
 		transition: .5s background;
 	}
 
 	.light &::before {
-		filter: blur(2px);
 		mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 70%, transparent 100%);
 	}
 }
