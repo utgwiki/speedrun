@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="theme-color" content="#111b2d" />
+	<meta name="description" content="An ad-free view of Untitled Tag Game speedruns." />
+	<title>speedruns for untitled tag game</title>
+	<link rel="icon" href="https://static.wikitide.net/utgwiki/4/4a/ParticleIcon.png" />
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link
+		href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Google+Sans+Flex:opsz,wght,ROND@6..144,1..1000,0..100&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,1,0"
+		rel="stylesheet" />
+	<link rel="stylesheet" href="styles.css" />
+</head>
+
+<body id="top">
+	<header class="site-header">
+		<a class="brand" href="#top" aria-label="Untitled Tag Game runs home">
+			<div class="brand-logo-wrapper-wrapper">
+				<div class="brand-logo-wrapper icon-button">
+					<img class="icon-button" src="https://static.wikitide.net/utgwiki/4/4a/ParticleIcon.png" alt="" />
+				</div>
+			</div>
+			<span>speedruns</span>
+		</a>
+		<div class="header-actions">
+			<a class="source-link" href="https://www.speedrun.com/untitled_tag_game" target="_blank" rel="noreferrer">speedrun.com <span class="material-symbols-rounded">open_in_new</span></a>
+			<button class="icon-button" id="themeToggle" aria-label="Switch to light theme" title="Toggle theme">
+				<span class="material-symbols-rounded">light_mode</span>
+			</button>
+		</div>
+	</header>
+
+	<main>
+		<section class="intro">
+			<div class="intro-description">
+				<p>This redesign of the Speedrun.com leaderboard is made for quick checks without the clutter. This site's data is run by the speedrunning community, but overall managed by the <a href="https://tagging.wiki">wiki community</a>.</p>
+
+				<p>Run data, avatars, verification dates and video links come directly from Speedrun.com.</p>
+			</div>
+
+			<img class="garfieldhi" src="https://static.wikitide.net/utgwiki/5/57/GarfHi.png" alt="Untitled Tag Game" />
+		</section>
+
+		<section id="leaderboard" aria-labelledby="leaderboardTitle">
+			<!-- <div class="category-area" id="categories" aria-labelledby="categoryTitle">
+				<div class="section-heading">
+					<p class="kicker">Browse routes</p>
+					<h2 id="categoryTitle">Categories</h2>
+				</div>
+    		</div> -->
+
+			<div class="category-sticky-sentinel" id="categoryStickySentinel" aria-hidden="true"></div>
+			<div class="category-select" id="categorySelect">
+				<div class="category-tabs" id="categoryTabs" aria-label="Categories"></div>
+				<div class="subcategories" id="subcategoryTabs" aria-label="Subcategories"></div>
+			</div>
+
+			<div class="leaderboard-heading">
+				<div>
+					<p class="kicker" id="activeRouteLabel">Leaderboard</p>
+					<h2 id="leaderboardTitle">Loading leaderboard</h2>
+				</div>
+				<div class="leaderboard-info">
+					<span class="last-updated quiet-link" id="lastUpdated">Loading records…</span>
+					<a class="quiet-link" id="officialBoard" target="_blank" rel="noreferrer">Open official board <span class="material-symbols-rounded">open_in_new</span></a>
+				</div>
+			</div>
+			<div class="table-frame">
+				<div class="loading" id="loadingState"><span class="material-symbols-rounded">progress_activity</span> Getting verified runs</div>
+				<div class="table-scroll">
+					<table>
+						<thead>
+							<tr>
+								<th>Ranking</th>
+								<th>Player</th>
+								<th>Time</th>
+								<th>Platform</th>
+								<th>Verified</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody id="leaderboardBody"></tbody>
+					</table>
+				</div>
+				<p class="empty-state" id="emptyState" hidden>No verified runs are listed for this route yet.</p>
+			</div>
+		</section>
+
+		<section class="below" id="recent">
+			<div>
+				<h2>Recent runs</h2>
+				<div class="recent-list" id="recentList"></div>
+			</div>
+		</section>
+
+		<section class="intro join-speedruncomp" id="joincomp">
+			<h2>Join the speedrunning community</h2>
+			<a class="button" target="_blank" rel="noreferrer" href="https://dsc.gg/utgspeed"><span class="material-symbols-rounded">group_add</span> Join server</a>
+		</section>
+	</main>
+
+	<footer>
+		<a href="https://tagging.wiki" class="utg-icon">
+			<img src="https://static.wikitide.net/utgwiki/2/26/Favicon.png" alt="Untitled Tag Game Wiki" width="48" height="48" loading="lazy">
+		</a>
+	</footer>
+
+	<div class="modal-backdrop" id="modalBackdrop" hidden>
+		<section class="run-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+			<button class="icon-button close-button" id="modalClose" aria-label="Close run details"><span
+					class="material-symbols-rounded">close</span></button>
+			<div class="modal-top">
+				<p class="kicker" id="modalRoute">Run</p>
+				<h2 id="modalTitle">Run details</h2>
+				<p class="modal-time" id="modalTime"></p>
+			</div>
+			<div class="video-wrap" id="videoWrap"></div>
+			<div class="run-details" id="modalDetails"></div>
+			<p class="run-comment" id="modalComment" hidden></p>
+			<div class="modal-actions">
+				<a class="button" id="watchRun" target="_blank" rel="noreferrer"><span class="material-symbols-rounded">play_circle</span> Watch run</a>
+				<a class="quiet-link" id="viewRun" target="_blank" rel="noreferrer">View on Speedrun.com <span class="material-symbols-rounded">open_in_new</span></a>
+			</div>
+		</section>
+	</div>
+	<script src="app.js"></script>
+</body>
+
+</html>
