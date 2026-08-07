@@ -18,7 +18,7 @@
 	--line: rgba(39, 49, 90, .15);
 	--primary: #3b53bd;
 	--accent: var(--color-progressive); /* #3e5ac6; */
-	--bg: url(media/background-light.webp);
+	
 }
 
 :root.dark {
@@ -34,15 +34,34 @@
 	--line: rgba(205, 215, 246, .14);
 	--primary: #b0bfff;
 	--accent: var(--color-progressive); /* #7d91ff; */
-	--bg: url(media/background.webp);
 }
 
-.light .fttt-view {
-	--bg: url(media/background-ft3-light.webp);
+html:has(body.nlb-view) {
+	&.light {
+		--bg: url(media/background-light.webp);
+	}
+
+	&.dark {
+		--color-progressive: oklch(53.25% 0.1679 262.29);
+
+		--color-surface-0: #000;
+		--color-surface-1: #181818;
+		--color-surface-2: #222;
+		--color-surface-3: #292929;
+		--color-surface-4: #303030;
+		
+		--bg: url(media/background.webp);
+	}
 }
 
-.dark .fttt-view {
-	--bg: url(media/background-ft3.webp);
+html:has(body.fttt-view) {
+	&.light {
+		--bg: url(media/background-ft3-light.webp);
+	}
+
+	&.dark {
+		--bg: url(media/background-ft3.webp);
+	}
 }
 
 * {
@@ -80,7 +99,7 @@ body {
 
 	.light &::before {
 		filter: blur(2px);
-		mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 70%, transparent 100%);
+		mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 70%, transparent 100%);
 	}
 }
 
@@ -174,34 +193,10 @@ main {
 	gap: 1rem;
 
 	border-radius: 1rem;
-	padding: 2rem;
+	margin-bottom: 2rem;
 	position: relative;
 	overflow: hidden;
 	font-size: 1rem;
-
-	&::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background-image: url(https://static.wikitide.net/utgwiki/5/5e/Dithering_pattern.png);
-		background-position: bottom center;
-		background-repeat: repeat-x;
-		background-size: auto 100%;	
-		
-		mix-blend-mode: overlay;
-		pointer-events: none;
-		opacity: .5;
-		z-index: -1;
-	}
-
-	&::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background-color: oklch(from var(--color-surface-1) l c h / 70%);
-		backdrop-filter: blur(15px);
-		z-index: -2;
-	}
 
 	.intro-description {
 		display: flex;
@@ -394,6 +389,22 @@ a:hover {
 	backdrop-filter: blur(15px);
 	border-radius: 1rem;
 	overflow: hidden;
+	position: relative;
+
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background-image: url(https://static.wikitide.net/utgwiki/5/5e/Dithering_pattern.png);
+		background-position: bottom center;
+		background-repeat: repeat-x;
+		background-size: auto 200px;	
+		
+		mix-blend-mode: overlay;
+		pointer-events: none;
+		opacity: .2;
+		z-index: -1;
+	}
 }
 
 .loading {
