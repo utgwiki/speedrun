@@ -86,7 +86,8 @@ const state = {
 	activeVariable: null,
 	activeValue: null,
 	runs: [],
-	renderedSubcategoryCategory: null
+	renderedSubcategoryCategory: null,
+	activeRun: null
 };
 
 const $ = selector => document.querySelector(selector);
@@ -226,6 +227,87 @@ function viewFor(categoryId = state.activeCategory, valueId = state.activeValue)
 	};
 }
 
+function setMetaTag(selector, attrKey, attrValue, content) {
+	let el = document.querySelector(selector);
+	if (!el) {
+		el = document.createElement('meta');
+		el.setAttribute(attrKey, attrValue);
+		document.head.appendChild(el);
+	}
+	el.setAttribute('content', content);
+}
+
+function removeMetaTag(selector) {
+	const el = document.querySelector(selector);
+	if (el) el.remove();
+}
+
+function colorToHex(colorStr) {
+	if (!colorStr) return '';
+	if (colorStr.startsWith('#')) return colorStr;
+	try {
+		const canvas = document.createElement('canvas');
+		canvas.width = 1;
+		canvas.height = 1;
+		const ctx = canvas.getContext('2d', { willReadFrequently: true });
+		ctx.fillStyle = colorStr;
+		ctx.fillRect(0, 0, 1, 1);
+		const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+		return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+	} catch {
+		return colorStr;
+	}
+}
+
+function updateSEO() {
+	const category = categoryFor(state.activeCategory);
+	const isUfg = state.activeCategory === UFG_GAME_ID;
+
+	const colorProgressive = getComputedStyle(document.documentElement).getPropertyValue('--color-progressive').trim();
+	if (colorProgressive) {
+		setMetaTag('meta[name="theme-color"]', 'name', 'theme-color', colorToHex(colorProgressive));
+	}
+
+	document.title = isUfg ? 'speedrun hub | untitled farming game wiki' : 'speedrun hub | untitled tag game wiki';
+
+	let description = '';
+	if (state.activeRun) {
+		const run = state.activeRun;
+		const runCategory = categoryFor(typeof run.category === 'string' ? run.category : run.category?.data?.id) || state.categories.find(c => c.gameId === run.game) || category;
+		const subs = getSubcategories(runCategory);
+		const variable = runCategory?.variables?.data?.find(item => item['is-subcategory']);
+		let subsection = null;
+		if (run.level?.data?.name) {
+			subsection = run.level.data.name;
+		} else if (variable && run.values?.[variable.id]) {
+			subsection = variable.values.values[run.values[variable.id]]?.label;
+		} else if (state.activeValue) {
+			subsection = subs.find(s => s.id === state.activeValue)?.label;
+		}
+
+		const user = run.avatar?.name || 'Unknown player';
+		const timing = formatTime(run.times.primary_t);
+		// const mainCat = runCategory?.name || '';
+		const game = (runCategory?.gameId === UFG_GAME_ID || runCategory?.id === UFG_GAME_ID) ? 'Untitled Farming Game' : 'Untitled Tag Game';
+
+		const categoryText = subsection ? `${game}'s "${subsection}"` : `${game}'s`;
+		description = `view ${user}'s run of ${timing} in ${categoryText} speedrun leaderboard`;
+	} else {
+		const gameTitle = isUfg ? 'Untitled Farming Game' : 'Untitled Tag Game';
+		description = `view the speedrun leaderboard for ${gameTitle} without clutter`;
+	}
+	setMetaTag('meta[name="description"]', 'name', 'description', description);
+
+	const icon = CATEGORY_ICONS[state.activeCategory];
+	if (icon?.src) {
+		const fullImageUrl = new URL(icon.src, window.location.href).href;
+		setMetaTag('meta[property="og:image"]', 'property', 'og:image', fullImageUrl);
+	} else {
+		removeMetaTag('meta[property="og:image"]');
+	}
+	setMetaTag('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary');
+}
+
 function setHash(runId = null, replace = false) {
 	const view = viewFor();
 	if (!view) return;
@@ -298,6 +380,7 @@ async function selectCategory(id, { syncHash = true } = {}) {
 	state.activeVariable = variable?.id || null;
 	state.activeValue = subs[0]?.id || null;
 	renderCategories();
+	updateSEO();
 	await loadLeaderboard();
 	if (syncHash) setHash();
 }
@@ -388,6 +471,7 @@ function youtubeEmbed(url) {
 }
 
 function openModal(run, { syncHash = true } = {}) {
+	state.activeRun = run;
 	const category = categoryFor(typeof run.category === 'string' ? run.category : run.category?.data?.id) || state.categories.find(c => c.gameId === run.game);
 	const subs = getSubcategories(category);
 	const variable = category?.variables?.data?.find(item => item['is-subcategory']);
@@ -423,6 +507,7 @@ function openModal(run, { syncHash = true } = {}) {
 	$('#viewRun').href = run.weblink;
 	$('#modalBackdrop').hidden = false;
 	if (syncHash) setHash(run.id);
+	updateSEO();
 }
 
 async function enrichRecentRun(run) {
@@ -462,7 +547,15 @@ async function applyHash() {
 	if (target.valueId && target.valueId !== state.activeValue) {
 		await selectSubcategory(target.valueId, { syncHash: false });
 	}
-	if (!target.runId) return;
+	if (!target.runId) {
+		if (state.activeRun || $('#modalBackdrop').hidden === false) {
+			$('#modalBackdrop').hidden = true;
+			$('#videoWrap').innerHTML = '';
+			state.activeRun = null;
+			updateSEO();
+		}
+		return;
+	}
 	const run = state.runs.find(entry => entry.id === target.runId) || await runFromId(target.runId);
 	if (run) openModal(run, { syncHash: false });
 }
@@ -470,6 +563,8 @@ async function applyHash() {
 function closeModal() {
 	$('#modalBackdrop').hidden = true;
 	$('#videoWrap').innerHTML = '';
+	state.activeRun = null;
+	updateSEO();
 	setHash();
 }
 
@@ -535,6 +630,7 @@ function setupTheme() {
 		);
 
 		localStorage.setItem('utg-theme', light ? 'light' : 'dark');
+		updateSEO();
 	}
 }
 
