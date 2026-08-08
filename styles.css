@@ -58,6 +58,28 @@ html:has(body.nlb-view) {
 	}
 }
 
+html:has(body.ufg-view) {
+	&.light {
+		--color-progressive: oklch(77.851% 0.22056 148.554);
+		--primary: #3bbd57;
+
+		--bg: url(media/background-ufg-light.png);
+	}
+
+	&.dark {
+		--color-progressive: oklch(54.27% .1705 166.76);
+		--primary: #b0ffc5;
+
+		--color-surface-0: oklch(from var(--color-progressive) .2092 .0775 calc(h - 1));
+		--color-surface-1: oklch(from var(--color-progressive) .233 .0889 h);
+		--color-surface-2: oklch(from var(--color-progressive) .2614 .0959 calc(h + .5));
+		--color-surface-3: oklch(from var(--color-progressive) .3725 .0925 calc(h + 1));
+		--color-surface-4: oklch(from var(--color-progressive) .4162 .0933 calc(h + 1.5));
+		
+		--bg: url(media/background-ufg.png);
+	}
+}
+
 html:has(body.fttt-view) {
 	&.light {
 		--bg: url(media/background-ft3-light.webp);
@@ -263,6 +285,7 @@ a:hover {
 	display: inline-flex;
 	flex-wrap: wrap;
 	gap: 8px;
+	mask-image: none;
 
 	> * {
 		transition: opacity 0.25s ease, translate 0.25s ease;
@@ -283,6 +306,45 @@ a:hover {
 			flex: 0 0 auto;
 		}
 	}
+
+	&.has-overflow-left {
+		mask-image: linear-gradient(to right, transparent, black 10%)!important;
+	}
+
+	&.has-overflow-right {
+		mask-image: linear-gradient(to right, black 90%, transparent)!important;
+	}
+
+	&.has-overflow-both {
+		mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent)!important;
+	}
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
+
+	&.dragging, &.dragging > * {
+		cursor: grabbing!important;
+	}
+}
+
+@media screen and (min-width: 1119px) {
+	.category-tabs {
+		flex: 0 0 auto;
+	}
+
+	.ufg-view .subcategories {
+		flex: 1;
+		flex-wrap: nowrap;
+		overflow: auto hidden;
+		white-space: nowrap;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+		-webkit-overflow-scrolling: touch;
+		cursor: grab;
+		touch-action: pan-x;
+		mask-image: none;
+	}
 }
 
 .category-select {
@@ -293,6 +355,7 @@ a:hover {
 	position: sticky;
 	top: 0;
 	margin: 1rem 0;
+	gap: 1rem;
 	transition: .25s height, .25s background;
 
 	@media screen and (max-width: 1119px) {
@@ -328,6 +391,7 @@ a:hover {
 	cursor: var(--cursor-pointer);
 	font: 500 13px Figtree;
 	padding: 8px 13px;
+	pointer-events: auto;
 
 	&.active {
 		background: var(--color-base);
@@ -421,7 +485,7 @@ a:hover {
 	display: flex;
 	gap: 9px;
 	justify-content: center;
-	min-height: 210px
+	min-height: 100px
 }
 
 .loading .material-symbols-rounded {

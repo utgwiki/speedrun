@@ -1,5 +1,6 @@
 const API = 'https://www.speedrun.com/api/v1';
-const GAME_ID = 'm1zy4336';
+const UTG_GAME_ID = 'm1zy4336';
+const UFG_GAME_ID = 'nd27z731';
 
 const CATEGORY_ICONS = {
 	'w2077y8k': {
@@ -9,16 +10,74 @@ const CATEGORY_ICONS = {
 	'02qn6lj2': {
 		src: 'media/icon-nlb.webp',
 		alt: "Guy's bowler"
+	},
+	'nd27z731': {
+		src: 'media/icon-ufg.png',
+		alt: 'Untitled Farming Game'
 	}
 };
+
 const CATEGORY_CLASSES = {
 	'w2077y8k': 'fttt-view',
-	'02qn6lj2': 'nlb-view'
+	'02qn6lj2': 'nlb-view',
+	'nd27z731': 'ufg-view'
 };
-// Optional stable URL slugs, keyed by category ID. Values use subcategory value IDs.
+
+// optional url slugs
 const VIEW_SLUGS = {
-	'w2077y8k': { slug: 'fttt' },
-	'02qn6lj2': { slug: 'nlb' }
+	'w2077y8k': { slug: 'fttt'},
+	'02qn6lj2': { slug: 'nlb' },
+	'nd27z731': {
+		slug: 'ufg',
+		values: {
+			'beat-untitled-farming': 'beat-game',
+		}
+	}
+};
+
+const UFG_CATEGORY = {
+	id: 'nd27z731',
+	gameId: 'nd27z731',
+	name: 'untitled farming game',
+	weblink: 'https://www.speedrun.com/untitled_farming_game',
+	subcategories: [
+		{
+			id: 'beat-untitled-farming',
+			label: 'Beat untitled farming%',
+			apiPath: '/leaderboards/nd27z731/category/5dw3wr52?embed=players,platforms',
+			weblink: 'https://www.speedrun.com/untitled_farming_game?h=beat-untitled-farming&x=5dw3wr52'
+		},
+		{
+			id: 'any',
+			label: 'any%',
+			apiPath: '/leaderboards/nd27z731/category/wk6qlzo2?embed=players,platforms',
+			weblink: 'https://www.speedrun.com/untitled_farming_game?h=beat-untitled-farming-any&x=wk6qlzo2'
+		},
+		{
+			id: 'plot',
+			label: 'plot%',
+			apiPath: '/leaderboards/nd27z731/level/dy1407jd/xk9z47g2?embed=players,platforms',
+			weblink: 'https://www.speedrun.com/untitled_farming_game?h=buy-all-plot&x=l_dy1407jd'
+		},
+		{
+			id: 'animal',
+			label: 'animal%',
+			apiPath: '/leaderboards/nd27z731/level/dnok1m6w/xk9z47g2?embed=players,platforms',
+			weblink: 'https://www.speedrun.com/untitled_farming_game?h=only-animals&x=l_dnok1m6w'
+		},
+		{
+			id: 'crop',
+			label: 'crop%',
+			apiPath: '/leaderboards/nd27z731/level/d7y6gq6d/xk9z47g2?embed=players,platforms',
+			weblink: 'https://www.speedrun.com/untitled_farming_game?h=only-plants&x=l_d7y6gq6d'
+		},
+		{
+			id: '1000-money',
+			label: '1000 money%',
+			apiPath: '/leaderboards/nd27z731/level/wj777e0w/xk9z47g2?embed=players,platforms',
+			weblink: 'https://www.speedrun.com/untitled_farming_game?h=1000-money&x=l_wj777e0w'
+		}
+	]
 };
 
 const state = {
@@ -31,6 +90,59 @@ const state = {
 };
 
 const $ = selector => document.querySelector(selector);
+
+function clearOverflowMask(element) {
+	if (!element) return;
+	element.classList.toggle('has-overflow-left', false);
+	element.classList.toggle('has-overflow-right', false);
+	element.classList.toggle('has-overflow-both', false);
+}
+
+function updateOverflowMask(element) {
+	if (!element) return;
+	const overflowX = getComputedStyle(element).overflowX;
+	if (overflowX === 'visible' || overflowX === 'clip') {
+		clearOverflowMask(element);
+		return;
+	}
+	const maxScrollLeft = Math.max(element.scrollWidth - element.clientWidth, 0);
+	const hasOverflow = element.clientWidth > 0 && maxScrollLeft > 2;
+	const atLeftEdge = element.scrollLeft <= 2;
+	const atRightEdge = element.scrollLeft >= Math.max(maxScrollLeft - 2, 0);
+
+	clearOverflowMask(element);
+	if (!hasOverflow) return;
+
+	if (atLeftEdge) {
+		element.classList.add('has-overflow-right');
+	} else if (atRightEdge) {
+		element.classList.add('has-overflow-left');
+	} else {
+		element.classList.add('has-overflow-both');
+	}
+}
+
+function updateOverflowMasks() {
+	updateOverflowMask($('#subcategoryTabs'));
+	updateOverflowMask($('#categoryTabs'));
+}
+
+function scheduleOverflowMaskUpdate() {
+	requestAnimationFrame(updateOverflowMasks);
+}
+
+function getSubcategories(category) {
+	if (!category) return [];
+	if (category.subcategories) return category.subcategories;
+	const variable = category.variables?.data?.find(item => item['is-subcategory']);
+	if (!variable) return [];
+	return Object.entries(variable.values.values).map(([id, val]) => ({
+		id,
+		label: val.label,
+		apiPath: `/leaderboards/${category.gameId || UTG_GAME_ID}/category/${category.id}?var-${variable.id}=${id}&embed=players,platforms`,
+		weblink: category.weblink
+	}));
+}
 
 function removeRedirectParam() {
 	const url = new URL(window.location.href);
@@ -63,6 +175,7 @@ const escapeHTML = value => String(value || '').replace(/[&<>'"]/g, char => ({
 	"'": '&#39;',
 	'"': '&quot;'
 } [char]));
+
 async function api(path) {
 	const response = await fetch(`${API}${path}`);
 	if (!response.ok) throw new Error('Speedrun.com did not return data.');
@@ -103,13 +216,13 @@ function categorySlug(category) {
 function viewFor(categoryId = state.activeCategory, valueId = state.activeValue) {
 	const category = categoryFor(categoryId);
 	if (!category) return null;
-	const variable = category.variables?.data?.find(item => item['is-subcategory']);
-	const value = variable?.values?.values?.[valueId];
+	const subs = getSubcategories(category);
+	const sub = subs.find(item => item.id === valueId);
 	const configured = VIEW_SLUGS[category.id]?.values?.[valueId];
 	return {
 		categoryId: category.id,
-		valueId: value ? valueId : null,
-		slug: [categorySlug(category), value ? (configured || slugify(value.label)) : null].filter(Boolean).join('-')
+		valueId: sub ? sub.id : null,
+		slug: [categorySlug(category), sub ? (configured || slugify(sub.label)) : null].filter(Boolean).join('-')
 	};
 }
 
@@ -124,9 +237,8 @@ function hashTarget() {
 	const hash = decodeURIComponent(location.hash.slice(1));
 	if (!hash) return null;
 	const views = state.categories.flatMap(category => {
-		const variable = category.variables?.data?.find(item => item['is-subcategory']);
-		const values = Object.keys(variable?.values?.values || {});
-		return values.length ? values.map(valueId => viewFor(category.id, valueId)) : [viewFor(category.id, null)];
+		const subs = getSubcategories(category);
+		return subs.length ? subs.map(sub => viewFor(category.id, sub.id)) : [viewFor(category.id, null)];
 	}).filter(Boolean).sort((a, b) => b.slug.length - a.slug.length);
 	const view = views.find(candidate => hash === candidate.slug || hash.startsWith(`${candidate.slug}-`));
 	if (!view) return null;
@@ -150,15 +262,16 @@ function renderCategories() {
 		button.setAttribute('aria-pressed', active);
 	});
 	renderSubcategories();
+	scheduleOverflowMaskUpdate();
 }
 
 function renderSubcategories() {
 	const sub = $('#subcategoryTabs');
 	const category = categoryFor(state.activeCategory);
-	const variable = category?.variables?.data?.find(item => item['is-subcategory']);
-	const values = variable ? Object.entries(variable.values.values) : [];
+	const subs = getSubcategories(category);
 	if (state.renderedSubcategoryCategory !== state.activeCategory) {
-		sub.innerHTML = values.map(([id, value]) => `<button class="subcategory-button" data-value="${id}">${escapeHTML(value.label)}</button>`).join('');
+		sub.innerHTML = subs.map(item => `<button class="subcategory-button" data-value="${item.id}">${escapeHTML(item.label)}</button>`).join('');
+		sub.scrollLeft = 0;
 		state.renderedSubcategoryCategory = state.activeCategory;
 	}
 	sub.querySelectorAll('.subcategory-button').forEach(button => {
@@ -170,6 +283,7 @@ function renderSubcategories() {
 
 async function selectCategory(id, { syncHash = true } = {}) {
 	const category = categoryFor(id);
+	if (!category) return;
 	state.activeCategory = id;
 
 	document.body.classList.remove(...Object.values(CATEGORY_CLASSES));
@@ -179,9 +293,10 @@ async function selectCategory(id, { syncHash = true } = {}) {
 		document.body.classList.add(className);
 	}
 
+	const subs = getSubcategories(category);
 	const variable = category.variables?.data?.find(item => item['is-subcategory']);
 	state.activeVariable = variable?.id || null;
-	state.activeValue = variable?.values?.default || null;
+	state.activeValue = subs[0]?.id || null;
 	renderCategories();
 	await loadLeaderboard();
 	if (syncHash) setHash();
@@ -214,6 +329,7 @@ async function loadLeaderboard() {
 	const category = categoryFor(state.activeCategory);
 	if (!category) return;
 	$('#loadingState').hidden = false;
+	$('#loadingState').innerHTML = '<span class="material-symbols-rounded">progress_activity</span> Getting verified runs';
 	$('.table-scroll').hidden = true;
 	$('#emptyState').hidden = true;
 	const title = $('#leaderboardTitle');
@@ -227,19 +343,31 @@ async function loadLeaderboard() {
 		title.append(image);
 	}
 	title.append(document.createTextNode(category.name));
-	$('#activeRouteLabel').textContent = state.activeValue ? category.variables.data.find(item => item.id === state.activeVariable).values.values[state.activeValue].label : 'Leaderboard';
-	$('#officialBoard').href = category.weblink;
+
+	const subs = getSubcategories(category);
+	const activeSub = subs.find(item => item.id === state.activeValue);
+	$('#activeRouteLabel').textContent = activeSub ? activeSub.label : 'Leaderboard';
+	$('#officialBoard').href = activeSub?.weblink || category.weblink;
+
 	try {
-		const filter = state.activeVariable && state.activeValue ? `?var-${state.activeVariable}=${state.activeValue}&embed=players,platforms` : '?embed=players,platforms';
-		const data = await api(`/leaderboards/${GAME_ID}/category/${category.id}${filter}`);
+		const gameId = category.gameId || UTG_GAME_ID;
+		let endpoint = activeSub?.apiPath;
+		if (!endpoint) {
+			const filter = state.activeVariable && state.activeValue ? `?var-${state.activeVariable}=${state.activeValue}&embed=players,platforms` : '?embed=players,platforms';
+			endpoint = `/leaderboards/${gameId}/category/${category.id}${filter}`;
+		}
+		const data = await api(endpoint);
 		state.runs = normaliseBoard(data);
 		renderLeaderboard();
 	} catch (error) {
-		$('#emptyState').hidden = false;
-		$('#emptyState').textContent = 'Could not load this leaderboard right now. Please try again shortly.';
 		state.runs = [];
 	} finally {
-		$('#loadingState').hidden = true;
+		if (state.runs.length === 0) {
+			$('#loadingState').hidden = false;
+			$('#loadingState').innerHTML = '<span class="material-symbols-rounded" style="animation: none;">sentiment_frustrated</span> No runs found';
+		} else {
+			$('#loadingState').hidden = true;
+		}
 		$('.table-scroll').hidden = state.runs.length === 0;
 	}
 }
@@ -248,7 +376,7 @@ function renderLeaderboard() {
 	const body = $('#leaderboardBody');
 	body.innerHTML = state.runs.map((run, index) => {
 		const avatar = run.avatar.image ? `<img src="${escapeHTML(run.avatar.image)}" alt="" />` : `<span class="avatar-fallback">${initials(run.avatar.name)}</span>`;
-		return `<tr data-index="${index}"><td>${run.place || index + 1}</td><td><div class="avatar">${avatar}<div><strong>${escapeHTML(run.avatar.name)}</strong><!--<small>Verified run</small>--></div></div></td><td class="time">${formatTime(run.times.primary_t)}</td><td><span class="platform">${escapeHTML(run.platformName)}</span></td><td class="verified">${formatDate(run.date)}</td><td><span class="material-symbols-rounded row-arrow">chevron_right</span></td></tr>`;
+		return `<tr data-index="${index}"><td>${run.place || index + 1}</td><td><div class="avatar">${avatar}<div><strong>${escapeHTML(run.avatar.name)}</strong></div></div></td><td class="time">${formatTime(run.times.primary_t)}</td><td><span class="platform">${escapeHTML(run.platformName)}</span></td><td class="verified">${formatDate(run.date)}</td><td><span class="material-symbols-rounded row-arrow">chevron_right</span></td></tr>`;
 	}).join('');
 	body.querySelectorAll('tr').forEach(row => row.addEventListener('click', () => openModal(state.runs[Number(row.dataset.index)])));
 }
@@ -260,9 +388,17 @@ function youtubeEmbed(url) {
 }
 
 function openModal(run, { syncHash = true } = {}) {
-	const category = categoryFor(typeof run.category === 'string' ? run.category : run.category?.data?.id);
+	const category = categoryFor(typeof run.category === 'string' ? run.category : run.category?.data?.id) || state.categories.find(c => c.gameId === run.game);
+	const subs = getSubcategories(category);
 	const variable = category?.variables?.data?.find(item => item['is-subcategory']);
-	const subsection = variable && run.values?.[variable.id] ? variable.values.values[run.values[variable.id]]?.label : null;
+	let subsection = null;
+	if (run.level?.data?.name) {
+		subsection = run.level.data.name;
+	} else if (variable && run.values?.[variable.id]) {
+		subsection = variable.values.values[run.values[variable.id]]?.label;
+	} else if (state.activeValue) {
+		subsection = subs.find(s => s.id === state.activeValue)?.label;
+	}
 	const video = run.videos?.links?.[0]?.uri || null;
 	const embed = youtubeEmbed(video);
 	$('#modalRoute').textContent = [category?.name, subsection].filter(Boolean).join(' · ');
@@ -273,8 +409,6 @@ function openModal(run, { syncHash = true } = {}) {
 		['Platform', run.platformName],
 		['Run date', formatDate(run.date)],
 		['Verified', formatDate(run.status?.['verify-date'])],
-		// ['Emulated', run.system?.emulated ? 'Yes' : 'No'],
-		// ['Category', subsection || category?.name || '—']
 	];
 	$('#modalDetails').innerHTML = details.map(([label, value]) => `<div class="detail"><span>${label}</span><strong>${escapeHTML(value)}</strong></div>`).join('');
 	const videoWrap = $('#videoWrap');
@@ -293,11 +427,15 @@ function openModal(run, { syncHash = true } = {}) {
 
 async function enrichRecentRun(run) {
 	const categoryId = run.category?.data?.id || run.category;
+	const gameId = run.game || UTG_GAME_ID;
 	if (!categoryId) return run;
 	const filters = new URLSearchParams({ embed: 'players,platforms' });
 	Object.entries(run.values || {}).forEach(([variableId, valueId]) => filters.set(`var-${variableId}`, valueId));
 	try {
-		const board = normaliseBoard(await api(`/leaderboards/${GAME_ID}/category/${categoryId}?${filters}`));
+		const endpoint = run.level?.data?.id 
+			? `/leaderboards/${gameId}/level/${run.level.data.id}/${categoryId}?${filters}`
+			: `/leaderboards/${gameId}/category/${categoryId}?${filters}`;
+		const board = normaliseBoard(await api(endpoint));
 		const matchingRun = board.find(entry => entry.id === run.id);
 		return matchingRun ? { ...run, place: matchingRun.place, platformName: matchingRun.platformName } : run;
 	} catch {
@@ -306,7 +444,7 @@ async function enrichRecentRun(run) {
 }
 
 async function runFromId(id) {
-	const data = await api(`/runs/${id}?embed=players,category,platform`);
+	const data = await api(`/runs/${id}?embed=players,category,platform,level`);
 	const run = data.data;
 	return enrichRecentRun({
 		...run,
@@ -337,13 +475,24 @@ function closeModal() {
 
 async function loadRecent() {
 	try {
-		const data = await api(`/runs?game=${GAME_ID}&status=verified&orderby=verify-date&direction=desc&max=6&embed=players,category,platform`);
-		const recentRuns = data.data.map(run => ({
-			...run,
-			avatar: playerFor(run, run.players?.data),
-			categoryName: run.category?.data?.name || 'Run',
-			platformName: run.platform?.data?.name || 'Unknown platform'
-		}));
+		const [data1, data2] = await Promise.all([
+			api(`/runs?game=${UTG_GAME_ID}&status=verified&orderby=verify-date&direction=desc&max=6&embed=players,category,platform,level`),
+			api(`/runs?game=${UFG_GAME_ID}&status=verified&orderby=verify-date&direction=desc&max=6&embed=players,category,platform,level`)
+		]);
+		const combined = [...data1.data, ...data2.data]
+			.sort((a, b) => new Date(b.status?.['verify-date'] || b.date) - new Date(a.status?.['verify-date'] || a.date))
+			.slice(0, 6);
+		const recentRuns = combined.map(run => {
+			const categoryName = run.category?.data?.name || 'Run';
+			const levelName = run.level?.data?.name;
+			const displayCategory = levelName ? levelName : categoryName;
+			return {
+				...run,
+				avatar: playerFor(run, run.players?.data),
+				categoryName: displayCategory,
+				platformName: run.platform?.data?.name || 'Unknown platform'
+			};
+		});
 		const runs = await Promise.all(recentRuns.map(enrichRecentRun));
 		$('#recentList').innerHTML = runs.map((run, index) => {
 			const avatar = run.avatar.image ? `<img src="${escapeHTML(run.avatar.image)}" alt="" />` : `<span class="avatar-fallback">${initials(run.avatar.name)}</span>`;
@@ -368,7 +517,6 @@ function setupTheme() {
 	const button = $('#themeToggle');
 	const saved = localStorage.getItem('utg-theme');
 
-	// Default to dark
 	setTheme(saved === 'light');
 
 	button.addEventListener('click', () =>
@@ -395,10 +543,73 @@ function setupCategoryControls() {
 		const button = event.target.closest('.category-button');
 		if (button && button.dataset.category !== state.activeCategory) selectCategory(button.dataset.category);
 	});
-	$('#subcategoryTabs').addEventListener('click', event => {
-		const button = event.target.closest('.subcategory-button');
-		if (button && button.dataset.value !== state.activeValue) selectSubcategory(button.dataset.value);
+
+	const subcategoryTabs = $('#subcategoryTabs');
+	let isDragging = false;
+	let startX = 0;
+	let startScrollLeft = 0;
+	let moved = false;
+
+	subcategoryTabs.addEventListener('pointerdown', event => {
+		if (event.pointerType === 'mouse' && event.button !== 0) return;
+		isDragging = true;
+		moved = false;
+		startX = event.clientX;
+		startScrollLeft = subcategoryTabs.scrollLeft;
 	});
+
+	subcategoryTabs.addEventListener('pointermove', event => {
+		if (!isDragging) return;
+		const dx = event.clientX - startX;
+		const nextScrollLeft = Math.max(0, Math.min(
+			startScrollLeft - dx,
+			subcategoryTabs.scrollWidth - subcategoryTabs.clientWidth
+		));
+		if (Math.abs(nextScrollLeft - startScrollLeft) > 3) {
+			moved = true;
+			if (!subcategoryTabs.hasPointerCapture(event.pointerId)) {
+				subcategoryTabs.setPointerCapture(event.pointerId);
+			}
+			subcategoryTabs.classList.add('dragging');
+			event.preventDefault();
+		}
+		subcategoryTabs.scrollLeft = nextScrollLeft;
+		updateOverflowMasks();
+	});
+
+	function stopDragging(event) {
+		if (!isDragging) return;
+		isDragging = false;
+		subcategoryTabs.classList.remove('dragging');
+		updateOverflowMasks();
+	}
+
+	subcategoryTabs.addEventListener('pointerup', stopDragging);
+	subcategoryTabs.addEventListener('pointercancel', stopDragging);
+	subcategoryTabs.addEventListener('lostpointercapture', stopDragging);
+	subcategoryTabs.addEventListener('scroll', () => {
+		updateOverflowMasks();
+	});
+	$('#categoryTabs').addEventListener('scroll', updateOverflowMasks);
+	window.addEventListener('resize', scheduleOverflowMaskUpdate);
+	if ('ResizeObserver' in window) {
+		const overflowObserver = new ResizeObserver(scheduleOverflowMaskUpdate);
+		overflowObserver.observe(subcategoryTabs);
+		overflowObserver.observe($('#categoryTabs'));
+	}
+
+	subcategoryTabs.addEventListener('click', event => {
+		const button = event.target.closest('.subcategory-button');
+		if (!button) return;
+		if (moved) {
+			moved = false;
+			event.preventDefault();
+			event.stopPropagation();
+			return;
+		}
+		if (button.dataset.value !== state.activeValue) selectSubcategory(button.dataset.value);
+	});
+
 	const select = $('#categorySelect');
 	new IntersectionObserver(([entry]) => select.classList.toggle('is-sticky', !entry.isIntersecting), {
 		rootMargin: '-56px 0px 0px', threshold: 0
@@ -410,8 +621,9 @@ async function init() {
 	setupTheme();
 	setupCategoryControls();
 	try {
-		const data = await api(`/games/${GAME_ID}/categories?embed=variables`);
-		state.categories = data.data;
+		const data = await api(`/games/${UTG_GAME_ID}/categories?embed=variables`);
+		const utgCategories = data.data.map(cat => ({ ...cat, gameId: UTG_GAME_ID }));
+		state.categories = [...utgCategories, UFG_CATEGORY];
 		const target = hashTarget();
 		await selectCategory(target?.categoryId || state.categories[0].id, { syncHash: !target });
 		if (target) await applyHash();
