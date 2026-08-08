@@ -611,8 +611,14 @@ function setupCategoryControls() {
 	});
 
 	const select = $('#categorySelect');
-	new IntersectionObserver(([entry]) => select.classList.toggle('is-sticky', !entry.isIntersecting), {
-		rootMargin: '-56px 0px 0px', threshold: 0
+
+	new IntersectionObserver(([entry]) => {
+		const isSticky = !entry.isIntersecting;
+		select.classList.toggle('is-sticky', isSticky);
+		document.documentElement.classList.toggle('table-category-sticky', isSticky);
+	}, {
+		rootMargin: '-56px 0px 0px',
+		threshold: 0
 	}).observe($('#categoryStickySentinel'));
 }
 

@@ -153,6 +153,17 @@ body {
 	}
 }
 
+@media screen and (min-width: 1119px) and (max-width: 1350px) {
+	.brand > span,
+	.header-actions .source-link {
+		transition: .25s opacity;
+
+		.table-category-sticky & {
+			opacity: 0;
+		}
+	}
+}
+
 .brand {
 	align-items: center;
 	display: flex;
