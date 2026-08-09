@@ -87,13 +87,16 @@ const state = {
 	activeValue: null,
 	runs: [],
 	renderedSubcategoryCategory: null,
-	activeRun: null
+	activeRun: null,
+	subcategoryCounts: {},
+	leaderboardCache: {}
 };
 
 const $ = selector => document.querySelector(selector);
 
 function clearOverflowMask(element) {
 	if (!element) return;
+	element.classList.toggle('has-overflow', false);
 	element.classList.toggle('has-overflow-left', false);
 	element.classList.toggle('has-overflow-right', false);
 	element.classList.toggle('has-overflow-both', false);
@@ -114,6 +117,8 @@ function updateOverflowMask(element) {
 	clearOverflowMask(element);
 	if (!hasOverflow) return;
 
+	element.classList.add('has-overflow');
+
 	if (atLeftEdge) {
 		element.classList.add('has-overflow-right');
 	} else if (atRightEdge) {
@@ -126,6 +131,7 @@ function updateOverflowMask(element) {
 function updateOverflowMasks() {
 	updateOverflowMask($('#subcategoryTabs'));
 	updateOverflowMask($('#categoryTabs'));
+	updateOverflowMask($('.table-scroll'));
 }
 
 function scheduleOverflowMaskUpdate() {
@@ -298,14 +304,14 @@ function updateSEO() {
 	}
 	setMetaTag('meta[name="description"]', 'name', 'description', description);
 
-	const icon = CATEGORY_ICONS[state.activeCategory];
-	if (icon?.src) {
-		const fullImageUrl = new URL(icon.src, window.location.href).href;
-		setMetaTag('meta[property="og:image"]', 'property', 'og:image', fullImageUrl);
-	} else {
-		removeMetaTag('meta[property="og:image"]');
-	}
-	setMetaTag('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary');
+	// const icon = CATEGORY_ICONS[state.activeCategory];
+	// if (icon?.src) {
+	// 	const fullImageUrl = new URL(icon.src, window.location.href).href;
+	// 	setMetaTag('meta[property="og:image"]', 'property', 'og:image', fullImageUrl);
+	// } else {
+	// 	removeMetaTag('meta[property="og:image"]');
+	// }
+	// setMetaTag('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary');
 }
 
 function setHash(runId = null, replace = false) {
@@ -347,23 +353,63 @@ function renderCategories() {
 	scheduleOverflowMaskUpdate();
 }
 
+async function ensureSubcategoryCounts(category) {
+	if (!category) return;
+	const subs = getSubcategories(category);
+	if (!subs.length) return;
+
+	state.subcategoryCounts = state.subcategoryCounts || {};
+	state.leaderboardCache = state.leaderboardCache || {};
+
+	const missingSubs = subs.filter(sub => state.subcategoryCounts[`${category.id}_${sub.id}`] === undefined);
+	if (!missingSubs.length) return;
+
+	const gameId = category.gameId || UTG_GAME_ID;
+	const variable = category.variables?.data?.find(item => item['is-subcategory']);
+
+	await Promise.all(missingSubs.map(async sub => {
+		try {
+			let endpoint = sub.apiPath;
+			if (!endpoint) {
+				const filter = variable && sub.id ? `?var-${variable.id}=${sub.id}&embed=players,platforms` : '?embed=players,platforms';
+				endpoint = `/leaderboards/${gameId}/category/${category.id}${filter}`;
+			}
+			const data = await api(endpoint);
+			const runs = normaliseBoard(data);
+			state.subcategoryCounts[`${category.id}_${sub.id}`] = runs.length;
+			state.leaderboardCache[`${category.id}_${sub.id}`] = runs;
+		} catch (err) {
+			state.subcategoryCounts[`${category.id}_${sub.id}`] = 0;
+			state.leaderboardCache[`${category.id}_${sub.id}`] = [];
+		}
+	}));
+}
+
 function renderSubcategories() {
 	const sub = $('#subcategoryTabs');
 	const category = categoryFor(state.activeCategory);
 	const subs = getSubcategories(category);
-	if (state.renderedSubcategoryCategory !== state.activeCategory) {
-		sub.innerHTML = subs.map(item => `<button class="subcategory-button" data-value="${item.id}">${escapeHTML(item.label)}</button>`).join('');
+
+	const visibleSubs = subs.filter(item => {
+		const count = state.subcategoryCounts?.[`${category.id}_${item.id}`];
+		return count === undefined || count > 0;
+	});
+
+	const key = `${state.activeCategory}_${visibleSubs.map(s => s.id).join(',')}`;
+	if (state.renderedSubcategoryCategory !== key) {
+		sub.innerHTML = visibleSubs.map(item => `<button class="subcategory-button" data-value="${item.id}">${escapeHTML(item.label)}</button>`).join('');
 		sub.scrollLeft = 0;
-		state.renderedSubcategoryCategory = state.activeCategory;
+		state.renderedSubcategoryCategory = key;
 	}
 	sub.querySelectorAll('.subcategory-button').forEach(button => {
 		const active = button.dataset.value === state.activeValue;
 		button.classList.toggle('active', active);
 		button.setAttribute('aria-pressed', active);
 	});
+	scheduleOverflowMaskUpdate();
 }
 
-async function selectCategory(id, { syncHash = true } = {}) {
+async function selectCategory(id, { syncHash = true, targetValueId = null } = {}) {
 	const category = categoryFor(id);
 	if (!category) return;
 	state.activeCategory = id;
@@ -378,8 +424,21 @@ async function selectCategory(id, { syncHash = true } = {}) {
 	const subs = getSubcategories(category);
 	const variable = category.variables?.data?.find(item => item['is-subcategory']);
 	state.activeVariable = variable?.id || null;
-	state.activeValue = subs[0]?.id || null;
+
 	renderCategories();
+
+	await ensureSubcategoryCounts(category);
+
+	const visibleSubs = subs.filter(item => (state.subcategoryCounts?.[`${category.id}_${item.id}`] ?? 1) > 0);
+	if (targetValueId && subs.some(s => s.id === targetValueId)) {
+		state.activeValue = targetValueId;
+	} else if (visibleSubs.length > 0) {
+		state.activeValue = visibleSubs[0].id;
+	} else {
+		state.activeValue = subs[0]?.id || null;
+	}
+
+	renderSubcategories();
 	updateSEO();
 	await loadLeaderboard();
 	if (syncHash) setHash();
@@ -433,14 +492,21 @@ async function loadLeaderboard() {
 	$('#officialBoard').href = activeSub?.weblink || category.weblink;
 
 	try {
-		const gameId = category.gameId || UTG_GAME_ID;
-		let endpoint = activeSub?.apiPath;
-		if (!endpoint) {
-			const filter = state.activeVariable && state.activeValue ? `?var-${state.activeVariable}=${state.activeValue}&embed=players,platforms` : '?embed=players,platforms';
-			endpoint = `/leaderboards/${gameId}/category/${category.id}${filter}`;
+		const cacheKey = `${category.id}_${state.activeValue}`;
+		if (state.leaderboardCache && state.leaderboardCache[cacheKey]) {
+			state.runs = state.leaderboardCache[cacheKey];
+		} else {
+			const gameId = category.gameId || UTG_GAME_ID;
+			let endpoint = activeSub?.apiPath;
+			if (!endpoint) {
+				const filter = state.activeVariable && state.activeValue ? `?var-${state.activeVariable}=${state.activeValue}&embed=players,platforms` : '?embed=players,platforms';
+				endpoint = `/leaderboards/${gameId}/category/${category.id}${filter}`;
+			}
+			const data = await api(endpoint);
+			state.runs = normaliseBoard(data);
+			if (!state.leaderboardCache) state.leaderboardCache = {};
+			state.leaderboardCache[cacheKey] = state.runs;
 		}
-		const data = await api(endpoint);
-		state.runs = normaliseBoard(data);
 		renderLeaderboard();
 	} catch (error) {
 		state.runs = [];
@@ -452,6 +518,7 @@ async function loadLeaderboard() {
 			$('#loadingState').hidden = true;
 		}
 		$('.table-scroll').hidden = state.runs.length === 0;
+		scheduleOverflowMaskUpdate();
 	}
 }
 
@@ -542,7 +609,7 @@ async function applyHash() {
 	const target = hashTarget();
 	if (!target) return;
 	if (target.categoryId !== state.activeCategory) {
-		await selectCategory(target.categoryId, { syncHash: false });
+		await selectCategory(target.categoryId, { syncHash: false, targetValueId: target.valueId });
 	}
 	if (target.valueId && target.valueId !== state.activeValue) {
 		await selectSubcategory(target.valueId, { syncHash: false });
@@ -686,12 +753,17 @@ function setupCategoryControls() {
 	subcategoryTabs.addEventListener('scroll', () => {
 		updateOverflowMasks();
 	});
+	const tableScroll = $('.table-scroll');
+	if (tableScroll) {
+		tableScroll.addEventListener('scroll', updateOverflowMasks);
+	}
 	$('#categoryTabs').addEventListener('scroll', updateOverflowMasks);
 	window.addEventListener('resize', scheduleOverflowMaskUpdate);
 	if ('ResizeObserver' in window) {
 		const overflowObserver = new ResizeObserver(scheduleOverflowMaskUpdate);
 		overflowObserver.observe(subcategoryTabs);
 		overflowObserver.observe($('#categoryTabs'));
+		if (tableScroll) overflowObserver.observe(tableScroll);
 	}
 
 	subcategoryTabs.addEventListener('click', event => {

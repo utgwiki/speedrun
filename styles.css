@@ -292,6 +292,25 @@ a:hover {
 }
 
 .category-tabs,
+.subcategories,
+.table-scroll {
+	&.has-overflow-left {
+		-webkit-mask-image: linear-gradient(to right, transparent, black 10%)!important;
+		mask-image: linear-gradient(to right, transparent, black 10%)!important;
+	}
+
+	&.has-overflow-right {
+		-webkit-mask-image: linear-gradient(to right, black 90%, transparent)!important;
+		mask-image: linear-gradient(to right, black 90%, transparent)!important;
+	}
+
+	&.has-overflow-both {
+		-webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent)!important;
+		mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent)!important;
+	}
+}
+
+.category-tabs,
 .subcategories {
 	display: inline-flex;
 	flex-wrap: wrap;
@@ -312,22 +331,11 @@ a:hover {
 		gap: 4px;
 		flex-wrap: nowrap;
 		overflow: auto hidden;
+		width: 100%;
 
 		> * {
 			flex: 0 0 auto;
 		}
-	}
-
-	&.has-overflow-left {
-		mask-image: linear-gradient(to right, transparent, black 10%)!important;
-	}
-
-	&.has-overflow-right {
-		mask-image: linear-gradient(to right, black 90%, transparent)!important;
-	}
-
-	&.has-overflow-both {
-		mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent)!important;
 	}
 
 	&::-webkit-scrollbar {
@@ -344,7 +352,7 @@ a:hover {
 		flex: 0 0 auto;
 	}
 
-	.ufg-view .subcategories {
+	.subcategories {
 		flex: 1;
 		flex-wrap: nowrap;
 		overflow: auto hidden;
@@ -352,10 +360,14 @@ a:hover {
 		scrollbar-width: none;
 		-ms-overflow-style: none;
 		-webkit-overflow-scrolling: touch;
-		cursor: grab;
+		justify-content: end;
 		touch-action: pan-x;
 		mask-image: none;
 	}
+}
+
+.has-overflow {
+	cursor: grab;
 }
 
 .category-select {
@@ -490,6 +502,11 @@ a:hover {
 	}
 }
 
+.table-scroll {
+	overflow-x: auto;
+	mask-image: none;
+}
+
 .loading {
 	align-items: center;
 	color: var(--color-subtle);
@@ -507,10 +524,6 @@ a:hover {
 	to {
 		transform: rotate(360deg)
 	}
-}
-
-.table-scroll {
-	overflow-x: auto
 }
 
 table {
@@ -534,9 +547,15 @@ table {
 
 		&:first-child {
 			color: var(--color-subtle);
-			font: 600 13px 'Google Sans Flex';
+			font: 600 15px 'Google Sans Flex';
 			width: max-content;
+			transition: .25s font, .25s color;
 		}
+	}
+
+	tr:hover td:first-child {
+		color: var(--color-base);
+		font: 800 25px 'Google Sans Flex';
 	}
 
 	tr {
