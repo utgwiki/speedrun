@@ -249,6 +249,30 @@ function removeMetaTag(selector) {
 	if (el) el.remove();
 }
 
+function mainThingFor(category) {
+	const configured = {
+		'w2077y8k': 'First to The Token',
+		'02qn6lj2': 'Nothing Left Behind',
+		'nd27z731': 'Untitled Farming Game'
+	};
+	return configured[category?.id] || category?.name || 'the speedrun';
+}
+
+function updateDiscordEmbed(description) {
+	const script = document.querySelector('#discord\\:component-embed');
+	if (!script) return;
+	try {
+		const embed = JSON.parse(script.textContent);
+		const text = embed.component?.components?.find(component => component.type === 9)
+			?.components?.find(component => component.type === 10);
+		if (!text) return;
+		text.content = `# [speedrun.tagging.wiki](https://speedrun.tagging.wiki)\n${description}`;
+		script.textContent = JSON.stringify(embed, null, '\t');
+	} catch {
+		// A malformed optional embed must not prevent the leaderboard from rendering.
+	}
+}
+
 function colorToHex(colorStr) {
 	if (!colorStr) return '';
 	if (colorStr.startsWith('#')) return colorStr;
@@ -281,29 +305,14 @@ function updateSEO() {
 	if (state.activeRun) {
 		const run = state.activeRun;
 		const runCategory = categoryFor(typeof run.category === 'string' ? run.category : run.category?.data?.id) || state.categories.find(c => c.gameId === run.game) || category;
-		const subs = getSubcategories(runCategory);
-		const variable = runCategory?.variables?.data?.find(item => item['is-subcategory']);
-		let subsection = null;
-		if (run.level?.data?.name) {
-			subsection = run.level.data.name;
-		} else if (variable && run.values?.[variable.id]) {
-			subsection = variable.values.values[run.values[variable.id]]?.label;
-		} else if (state.activeValue) {
-			subsection = subs.find(s => s.id === state.activeValue)?.label;
-		}
-
 		const user = run.avatar?.name || 'Unknown player';
 		const timing = formatTime(run.times.primary_t);
-		// const mainCat = runCategory?.name || '';
-		const game = (runCategory?.gameId === UFG_GAME_ID || runCategory?.id === UFG_GAME_ID) ? 'Untitled Farming Game' : 'Untitled Tag Game';
-
-		const categoryText = subsection ? `${game}'s "${subsection}"` : `${game}'s`;
-		description = `view ${user}'s run of ${timing} in ${categoryText} speedrun leaderboard`;
+		description = `view ${user}'s speedrun for ${mainThingFor(runCategory)} in ${timing} without clutter`;
 	} else {
-		const gameTitle = isUfg ? 'Untitled Farming Game' : 'Untitled Tag Game';
-		description = `view the speedrun leaderboard for ${gameTitle} without clutter`;
+		description = `view the speedrun leaderboard for ${mainThingFor(category)} without clutter`;
 	}
 	setMetaTag('meta[name="description"]', 'name', 'description', description);
+	updateDiscordEmbed(description);
 
 	// const icon = CATEGORY_ICONS[state.activeCategory];
 	// if (icon?.src) {
