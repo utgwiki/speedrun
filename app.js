@@ -229,7 +229,8 @@ function viewFor(categoryId = state.activeCategory, valueId = state.activeValue)
 	return {
 		categoryId: category.id,
 		valueId: sub ? sub.id : null,
-		slug: [categorySlug(category), sub ? (configured || slugify(sub.label)) : null].filter(Boolean).join('-')
+		slug: [categorySlug(category), sub ? (configured || slugify(sub.label)) : null].filter(Boolean).join('-'),
+		path: [categorySlug(category), sub ? (configured || slugify(sub.label)) : null].filter(Boolean).join('/')
 	};
 }
 
@@ -314,23 +315,29 @@ function updateSEO() {
 	// setMetaTag('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary');
 }
 
-function setHash(runId = null, replace = false) {
+function setRoute(runId = null, replace = false) {
 	const view = viewFor();
 	if (!view) return;
-	const hash = `#${view.slug}${runId ? `-${runId}` : ''}`;
-	history[replace ? 'replaceState' : 'pushState'](null, '', hash);
+	const path = `/${view.path}${runId ? `/${encodeURIComponent(runId)}` : ''}`;
+	history[replace ? 'replaceState' : 'pushState'](null, '', path);
 }
 
-function hashTarget() {
-	const hash = decodeURIComponent(location.hash.slice(1));
-	if (!hash) return null;
+function routeTarget() {
+	const path = location.pathname.replace(/^\/+|\/+$/g, '');
+	const legacyHash = decodeURIComponent(location.hash.slice(1));
+	const route = path || legacyHash.replace(/-/g, '/');
+	if (!route) return null;
 	const views = state.categories.flatMap(category => {
 		const subs = getSubcategories(category);
 		return subs.length ? subs.map(sub => viewFor(category.id, sub.id)) : [viewFor(category.id, null)];
 	}).filter(Boolean).sort((a, b) => b.slug.length - a.slug.length);
-	const view = views.find(candidate => hash === candidate.slug || hash.startsWith(`${candidate.slug}-`));
+	const view = views.find(candidate => route === candidate.path || route.startsWith(`${candidate.path}/`) || route === candidate.slug || route.startsWith(`${candidate.slug}-`));
 	if (!view) return null;
-	const runId = hash.slice(view.slug.length).replace(/^-/, '') || null;
+	const runId = route.startsWith(`${view.path}/`)
+		? route.slice(view.path.length + 1).split('/')[0]
+		: route.startsWith(`${view.slug}-`)
+			? route.slice(view.slug.length + 1).split('/')[0]
+			: null;
 	return { ...view, runId };
 }
 
@@ -424,6 +431,10 @@ async function selectCategory(id, { syncHash = true, targetValueId = null } = {}
 	const subs = getSubcategories(category);
 	const variable = category.variables?.data?.find(item => item['is-subcategory']);
 	state.activeVariable = variable?.id || null;
+	// Pick a route immediately; loading counts and leaderboard data must not delay navigation.
+	state.activeValue = targetValueId && subs.some(s => s.id === targetValueId) ? targetValueId : subs[0]?.id || null;
+	renderSubcategories();
+	if (syncHash) setRoute();
 
 	renderCategories();
 
@@ -439,16 +450,16 @@ async function selectCategory(id, { syncHash = true, targetValueId = null } = {}
 	}
 
 	renderSubcategories();
+	if (syncHash) setRoute(null, true);
 	updateSEO();
 	await loadLeaderboard();
-	if (syncHash) setHash();
 }
 
 async function selectSubcategory(id, { syncHash = true } = {}) {
 	state.activeValue = id;
 	renderSubcategories();
+	if (syncHash) setRoute();
 	await loadLeaderboard();
-	if (syncHash) setHash();
 }
 
 function normaliseBoard(payload) {
@@ -573,7 +584,7 @@ function openModal(run, { syncHash = true } = {}) {
 	watch.hidden = !video;
 	$('#viewRun').href = run.weblink;
 	$('#modalBackdrop').hidden = false;
-	if (syncHash) setHash(run.id);
+	if (syncHash) setRoute(run.id);
 	updateSEO();
 }
 
@@ -606,7 +617,7 @@ async function runFromId(id) {
 }
 
 async function applyHash() {
-	const target = hashTarget();
+	const target = routeTarget();
 	if (!target) return;
 	if (target.categoryId !== state.activeCategory) {
 		await selectCategory(target.categoryId, { syncHash: false, targetValueId: target.valueId });
@@ -632,7 +643,7 @@ function closeModal() {
 	$('#videoWrap').innerHTML = '';
 	state.activeRun = null;
 	updateSEO();
-	setHash();
+	setRoute();
 }
 
 async function loadRecent() {
@@ -798,9 +809,13 @@ async function init() {
 		const data = await api(`/games/${UTG_GAME_ID}/categories?embed=variables`);
 		const utgCategories = data.data.map(cat => ({ ...cat, gameId: UTG_GAME_ID }));
 		state.categories = [...utgCategories, UFG_CATEGORY];
-		const target = hashTarget();
+		const target = routeTarget();
 		await selectCategory(target?.categoryId || state.categories[0].id, { syncHash: !target });
-		if (target) await applyHash();
+		if (target) {
+			await applyHash();
+			// Migrate old hash links to the new clean pathname format.
+			if (location.hash) setRoute(target.runId, true);
+		}
 		$('#lastUpdated').textContent = `Updated ${new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date())}`;
 	} catch (error) {
 		$('#loadingState').textContent = 'Could not reach Speedrun.com. Please refresh to try again.';
