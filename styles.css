@@ -80,6 +80,7 @@ html:has(body.ufg-view) {
 	}
 }
 
+html:has(body),
 html:has(body.fttt-view) {
 	&.light {
 		--bg: url(media/background-ft3-light.webp);
@@ -270,6 +271,7 @@ h2 {
 
 .garfieldhi {
 	max-width: 190px;
+	object-fit: contain;
 }
 
 a, a:visited {
